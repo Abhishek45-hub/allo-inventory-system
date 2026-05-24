@@ -5,10 +5,7 @@
 			"label": "verify-root-structure-final",
 			"type": "shell",
 			"command": "cmd",
-			"args": [
-				"/c",
-				"dir /a /b c:\\Users\\Abhishek\\Desktop\\Allo_Health"
-			]
+			"args": ["/c", "dir /a /b c:\\Users\\Abhishek\\Desktop\\Allo_Health"]
 		},
 		{
 			"label": "build-shared",
