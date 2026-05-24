@@ -39,11 +39,12 @@ $jwtRefresh = Ask-Secret "JWT_REFRESH_SECRET"
 
 # Add env vars to Vercel (production)
 Write-Host "Adding environment variables to Vercel (production)..."
-vercel env add DATABASE_URL production --no-clipboard --yes <<< $databaseUrl
-if ($redisUrl -ne "") { vercel env add REDIS_URL production --no-clipboard --yes <<< $redisUrl }
-vercel env add JWT_ACCESS_SECRET production --no-clipboard --yes <<< $jwtAccess
-vercel env add JWT_REFRESH_SECRET production --no-clipboard --yes <<< $jwtRefresh
-vercel env add NODE_ENV production --no-clipboard --yes <<< "production"
+# Pipe the secret values into the interactive vercel prompts (PowerShell-compatible)
+$databaseUrl | vercel env add DATABASE_URL production --yes
+if ($redisUrl -ne "") { $redisUrl | vercel env add REDIS_URL production --yes }
+$jwtAccess | vercel env add JWT_ACCESS_SECRET production --yes
+$jwtRefresh | vercel env add JWT_REFRESH_SECRET production --yes
+"production" | vercel env add NODE_ENV production --yes
 
 # Run migrations remotely during build by ensuring DATABASE_URL exists in project
 Write-Host "Triggering a Vercel deploy (this will run your build steps)"
