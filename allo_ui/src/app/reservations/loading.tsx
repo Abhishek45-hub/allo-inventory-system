@@ -1,5 +1,5 @@
-import { LoadingSkeleton } from '@/components/feedback/loading-skeleton';
+import { LoadingSkeleton } from "@/components/feedback/loading-skeleton";
 
 export default function LoadingReservationsPage() {
-  return <LoadingSkeleton />;
+	return <LoadingSkeleton />;
 }
