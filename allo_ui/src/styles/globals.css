@@ -3,21 +3,26 @@
 @tailwind utilities;
 
 :root {
-  --color-bg: #f5f7fa;
-  --color-fg: #0f1720;
-  --color-primary: #0f766e;
-  --color-danger: #b91c1c;
+	--color-bg: #f5f7fa;
+	--color-fg: #0f1720;
+	--color-primary: #0f766e;
+	--color-danger: #b91c1c;
 }
 
 .dark {
-  --color-bg: #0d1117;
-  --color-fg: #f1f5f9;
-  --color-primary: #2dd4bf;
-  --color-danger: #ef4444;
+	--color-bg: #0d1117;
+	--color-fg: #f1f5f9;
+	--color-primary: #2dd4bf;
+	--color-danger: #ef4444;
 }
 
 body {
-  background: radial-gradient(circle at 20% 20%, rgba(15, 118, 110, 0.12), transparent 40%),
-    radial-gradient(circle at 80% 90%, rgba(37, 99, 235, 0.1), transparent 40%), var(--color-bg);
-  color: var(--color-fg);
+	background: radial-gradient(
+			circle at 20% 20%,
+			rgba(15, 118, 110, 0.12),
+			transparent 40%
+		),
+		radial-gradient(circle at 80% 90%, rgba(37, 99, 235, 0.1), transparent 40%),
+		var(--color-bg);
+	color: var(--color-fg);
 }
