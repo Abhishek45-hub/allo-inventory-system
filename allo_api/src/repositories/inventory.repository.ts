@@ -19,12 +19,15 @@ export class InventoryRepository {
   }
 
   reserve(inventoryId: string, quantity: number) {
-    return this.db.inventory.update({
-      where: { id: inventoryId },
-      data: {
-        reservedQuantity: { increment: quantity },
-      },
-    });
+    // Perform an atomic conditional update as a defensive guard.
+    // This updates reservedQuantity only if there is enough available stock.
+    return this.db.$queryRaw<Array<{ id: string }>>`
+      UPDATE "Inventory"
+      SET "reservedQuantity" = "reservedQuantity" + ${quantity}
+      WHERE id = ${inventoryId}::uuid
+        AND ("totalQuantity" - "reservedQuantity") >= ${quantity}
+      RETURNING id
+    `;
   }
 
   release(inventoryId: string, quantity: number) {

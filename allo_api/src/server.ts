@@ -25,9 +25,13 @@ const startDependencies = async () => {
     logger.info('database_connected');
     startReservationExpiryJob();
   } catch (error) {
-    const err = error as Error;
-    logger.error({ message: err.message, stack: err.stack }, 'database_connect_failed');
-    logger.warn({ reason: err.message }, 'reservation_expiry_job_not_started');
+    const err = error as Error & { code?: string };
+    const hint =
+      err.code === 'P1000'
+        ? 'Check DATABASE_URL username/password and host; for Vercel use your managed Postgres connection string.'
+        : undefined;
+    logger.error({ message: err.message, stack: err.stack, code: err.code, hint }, 'database_connect_failed');
+    logger.warn({ reason: err.message, code: err.code }, 'reservation_expiry_job_not_started');
   }
 
   try {
