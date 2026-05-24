@@ -1,5 +1,6 @@
 import Redis from 'ioredis';
 import { env } from '@/config/env';
+import { logger } from '@/config/logger';
 
 export const redis = new Redis(env.REDIS_URL, {
   maxRetriesPerRequest: 1,
@@ -8,5 +9,7 @@ export const redis = new Redis(env.REDIS_URL, {
   retryStrategy: () => null,
 });
 
-// Prevent noisy unhandled error events when Redis is optional in local development.
-redis.on('error', () => {});
+// Log Redis errors so startup shows a helpful message instead of an empty object.
+redis.on('error', (error) => {
+  logger.warn({ error: error?.message ?? error }, 'redis_error_event');
+});

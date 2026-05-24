@@ -83,7 +83,10 @@ export default function ProductsPage() {
 
               <div className="space-y-3">
                 {product.warehouses.map((warehouse) => (
-                  <div key={warehouse.warehouseId} className="flex flex-col gap-3 rounded-xl border border-slate-200 p-3 sm:flex-row sm:items-center sm:justify-between">
+                  <div
+                    key={warehouse.warehouseId}
+                    className="flex flex-col gap-3 rounded-xl border border-slate-200 p-3 sm:flex-row sm:items-center sm:justify-between transition-transform motion-safe:transition duration-150 ease-in-out hover:shadow-sm hover:scale-[1.01]"
+                  >
                     <div>
                       <p className="font-medium">{warehouse.warehouseName}</p>
                       <p className="text-sm text-slate-600 dark:text-slate-300">

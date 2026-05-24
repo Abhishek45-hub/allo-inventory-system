@@ -25,15 +25,17 @@ const startDependencies = async () => {
     logger.info('database_connected');
     startReservationExpiryJob();
   } catch (error) {
-    logger.error({ error }, 'database_connect_failed');
-    logger.warn('reservation_expiry_job_not_started');
+    const err = error as Error;
+    logger.error({ message: err.message, stack: err.stack }, 'database_connect_failed');
+    logger.warn({ reason: err.message }, 'reservation_expiry_job_not_started');
   }
 
   try {
     await redis.connect();
     logger.info('redis_connected');
   } catch (error) {
-    logger.warn({ error }, 'redis_unavailable_using_database_idempotency_fallback');
+    const err = error as Error;
+    logger.warn({ message: err.message }, 'redis_unavailable_using_database_idempotency_fallback');
   }
 };
 
