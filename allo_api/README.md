@@ -128,16 +128,25 @@ pnpm prisma:deploy
 	1. Deploy the API to a platform that supports long-running Node processes or Docker (Render, Railway, Fly, or a VPS). Deploy the UI to Vercel as usual.
 	2. If you must use Vercel for the API, refactor the app into serverless functions (significant work): export individual route handlers as Vercel Serverless Functions and remove the Express listen loop.
 
-### Quick Vercel helper (what I can automate locally)
+	### Recommended: deploy the API to a Docker-friendly PaaS (Render / Railway / Fly)
 
-- I cannot access your laptop remotely. I prepared a PowerShell helper script `DEPLOY_VERCEL.ps1` (below) that you can run locally to log into Vercel, set required environment variables, run migrations, and deploy. It requires the `vercel` CLI and your Vercel account.
+	This repository is an Express app that expects a long‑running Node process (it calls `app.listen`). Vercel's serverless model returns `404` for that approach. To run the API unchanged, deploy it as a container or to a service that supports long‑running Node processes.
 
-Example usage (run from `allo_api` folder):
-```powershell
-.\DEPLOY_VERCEL.ps1
-```
+	Option A — Deploy with Docker (Render/Railway/Fly):
 
-If you'd like, I can prepare the Render/Railway deployment configuration instead and a script to deploy there — this is the simpler path for running the API unchanged on a PaaS.
+	1. I added a `Dockerfile` that builds the project and starts `dist/server.js`.
+	2. Create a new Web Service on Render (or similar) and connect the Git repo. Use the Docker option and point to the repo root or `allo_api` folder if you deploy just the API.
+	3. Configure environment variables in the PaaS dashboard (required): `DATABASE_URL`, `JWT_ACCESS_SECRET`, `JWT_REFRESH_SECRET`, optional: `REDIS_URL`.
+	4. After deployment, run Prisma migrations against your production DB (from a machine that can reach the DB):
+	```bash
+	npx prisma migrate deploy --schema=prisma/schema.prisma
+	```
+
+	Option B — Refactor for Vercel (advanced):
+
+	- Convert Express routes into Vercel Serverless Functions or use a framework that supports serverless deployments. This requires non-trivial refactoring; I can help with a plan if you want to pursue this.
+
+	If you want, I can prepare a `render.yaml` for automatic Render deployments or help you deploy the current project to Render now — tell me which provider you prefer and I will prepare the exact steps and CI commands.
 
 ## Operational Recommendations
 - Move expiry processing to queue workers for very high throughput
