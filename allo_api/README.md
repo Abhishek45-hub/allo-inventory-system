@@ -121,6 +121,24 @@ pnpm prisma:deploy
 ```
 - Prisma `P1000` indicates invalid DB credentials in `DATABASE_URL`
 
+### Deploying to Vercel (important caveats)
+
+- Vercel does not run long-lived Node servers that listen on a port. This Express app expects a persistent process and therefore is not directly compatible with Vercel Serverless Functions without refactoring into serverless handlers.
+- Recommended approaches:
+	1. Deploy the API to a platform that supports long-running Node processes or Docker (Render, Railway, Fly, or a VPS). Deploy the UI to Vercel as usual.
+	2. If you must use Vercel for the API, refactor the app into serverless functions (significant work): export individual route handlers as Vercel Serverless Functions and remove the Express listen loop.
+
+### Quick Vercel helper (what I can automate locally)
+
+- I cannot access your laptop remotely. I prepared a PowerShell helper script `DEPLOY_VERCEL.ps1` (below) that you can run locally to log into Vercel, set required environment variables, run migrations, and deploy. It requires the `vercel` CLI and your Vercel account.
+
+Example usage (run from `allo_api` folder):
+```powershell
+.\DEPLOY_VERCEL.ps1
+```
+
+If you'd like, I can prepare the Render/Railway deployment configuration instead and a script to deploy there — this is the simpler path for running the API unchanged on a PaaS.
+
 ## Operational Recommendations
 - Move expiry processing to queue workers for very high throughput
 - Add metrics/alerts for conflict rate, release lag, and idempotency table growth
