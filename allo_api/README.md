@@ -1,56 +1,127 @@
 # allo_api
 
-Production-grade API for Allo inventory reservation.
+Concurrency-safe inventory reservation API for Allo order fulfillment.
 
-## Tech Stack
-- Node.js + Express + TypeScript
-- PostgreSQL with Prisma
-- Redis (idempotency and cache-ready)
-- JWT + refresh token flow + RBAC
-- Zod validation, pino logging, rate limit, helmet, compression, CORS
+## Architecture Overview
+- Framework: Express + TypeScript
+- Database: PostgreSQL via Prisma
+- Cache/Idempotency accelerator: Redis (optional, DB fallback enabled)
+- Auth: JWT access + refresh tokens
+- Validation: Zod request schemas
+- Observability and hardening: pino logging, helmet, rate limiting, CORS
 
-## Setup
-1. Copy `.env.example` to `.env`
-2. Install dependencies:
-   - `pnpm install`
-3. Generate Prisma client:
-   - `pnpm prisma:generate`
-4. Run migrations:
-   - `pnpm prisma:migrate`
-5. Seed base data:
-   - `pnpm prisma:seed`
-6. Start API:
-   - `pnpm dev`
+Core layers:
+- Controllers: HTTP contract and status codes
+- Services: business rules and transaction orchestration
+- Repositories: database access and row-level lock primitives
+- Middleware: auth, validation, idempotency, error handling
 
-## Concurrency Safety
-Reservation creation uses:
-- PostgreSQL transaction with `Serializable` isolation
-- `SELECT ... FOR UPDATE` row lock for inventory tuple `(productId, warehouseId)`
-- Atomic increment of `reservedQuantity` and reservation insert in one transaction
+## Data Model
+Primary entities:
+- `Product`
+- `Warehouse`
+- `Inventory` (warehouse-scoped stock)
+- `Reservation`
+- `IdempotencyKey`
 
-Guarantee: if two clients race for last unit, only one transaction commits and the other receives `409`.
+Reservation statuses:
+- `PENDING`
+- `CONFIRMED`
+- `RELEASED`
 
-## Endpoints
-- `GET /api/products`
-- `GET /api/warehouses`
-- `POST /api/reservations`
-- `POST /api/reservations/:id/confirm`
-- `POST /api/reservations/:id/release`
-- `POST /api/auth/login`
-- `POST /api/auth/refresh`
+Inventory safety constraints are enforced at DB level:
+- `totalQuantity >= 0`
+- `reservedQuantity >= 0`
+- `reservedQuantity <= totalQuantity`
+- `Reservation.quantity > 0`
+
+## Concurrency Strategy
+Reservation creation and lifecycle updates run in PostgreSQL `SERIALIZABLE` transactions with retry on serialization conflicts.
+
+Critical guarantees:
+- Reservation uses `SELECT ... FOR UPDATE` on inventory row (`productId`, `warehouseId`)
+- Stock mutation and reservation row write occur atomically in one transaction
+- Expired pending reservations for the target inventory are released lazily inside the same transaction before availability check
+- Final conflict returns `409` after retry budget if concurrent write conflict persists
+
+Result:
+- No overselling
+- Last-unit race yields exactly one success and one `409`
 
 ## Expiry Strategy
-- `node-cron` job executes every minute
-- Releases all expired pending reservations using transaction-protected logic
+Dual strategy:
+- Background cron (`*/1 * * * *`) releases expired pending reservations in batches
+- Lazy expiry release runs during new reservation flow for the same inventory tuple
 
-Tradeoff:
-- Simple ops model, eventual release within minute granularity
-- For high throughput, move to queue workers and partition expiry scans
+Why both:
+- Cron ensures eventual cleanup globally
+- Lazy release minimizes false stock exhaustion between cron ticks
 
-## Tests
-- `pnpm test`
-- `pnpm test:concurrency`
+## Idempotency
+`Idempotency-Key` is supported for:
+- `POST /api/reservations`
+- `POST /api/reservations/:id/confirm`
 
-## CI/CD
-- Workflow: `.github/workflows/ci.yml`
-- Semantic release config: `.releaserc.json`
+Behavior:
+- Duplicate retry with same key + same payload returns original response
+- Reuse of same key with different payload returns `409`
+- Redis is used for fast replay cache when available
+- Database `IdempotencyKey` table provides durable fallback
+
+## API Endpoints
+- `GET /api/health`
+- `POST /api/auth/login`
+- `POST /api/auth/refresh`
+- `GET /api/products`
+- `GET /api/warehouses`
+- `GET /api/reservations/:id` (auth required)
+- `POST /api/reservations` (auth + idempotency)
+- `POST /api/reservations/:id/confirm` (auth + idempotency)
+- `POST /api/reservations/:id/release` (auth)
+
+## Setup
+```bash
+pnpm install
+cp .env.example .env
+pnpm prisma:generate
+pnpm prisma:migrate
+pnpm prisma:seed
+pnpm dev
+```
+
+## Environment Variables
+Required:
+- `DATABASE_URL`
+- `JWT_ACCESS_SECRET`
+- `JWT_REFRESH_SECRET`
+
+Optional:
+- `REDIS_URL` (if omitted, DB-backed idempotency fallback is used)
+- `CORS_ORIGIN`
+- `RESERVATION_TTL_MINUTES`
+
+## Testing
+```bash
+pnpm test
+pnpm test:concurrency
+```
+
+Coverage includes:
+- health endpoint
+- authenticated reservation flows
+- idempotent replay
+- expired confirm returns `410`
+- last-unit race conflict (`201` + `409`)
+
+## Production Deployment Notes (Vercel)
+- `postinstall` runs `prisma generate` for Linux build artifacts
+- Apply migrations before traffic:
+```bash
+pnpm prisma:deploy
+```
+- Prisma `P1000` indicates invalid DB credentials in `DATABASE_URL`
+
+## Operational Recommendations
+- Move expiry processing to queue workers for very high throughput
+- Add metrics/alerts for conflict rate, release lag, and idempotency table growth
+- Periodically prune expired `IdempotencyKey` rows
