@@ -1,0 +1,16 @@
+{
+	"version": "2.0.0",
+	"tasks": [
+		{
+			"label": "api-test-once",
+			"type": "shell",
+			"command": "pnpm",
+			"args": [
+				"test",
+				"--",
+				"--runInBand"
+			],
+			"isBackground": false
+		}
+	]
+}
