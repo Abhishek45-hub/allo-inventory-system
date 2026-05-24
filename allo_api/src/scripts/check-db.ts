@@ -12,7 +12,11 @@ const envSchema = z.object({
 try {
   envSchema.parse(process.env);
 } catch (e) {
-  console.error('❌ Environment validation failed:', e.errors ?? e);
+  if (e instanceof z.ZodError) {
+    console.error('❌ Environment validation failed:', e.errors);
+  } else {
+    console.error('❌ Environment validation failed:', e);
+  }
   process.exit(1);
 }
 
