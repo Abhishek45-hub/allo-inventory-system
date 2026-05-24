@@ -3,8 +3,9 @@ FROM node:20-alpine
 # Create app directory
 WORKDIR /usr/src/app
 
-# Copy package manifests first for cached installs
+# Copy package manifests and Prisma schema for cached installs
 COPY package.json package-lock.json* ./
+COPY prisma ./prisma
 
 # Install build deps
 RUN npm ci --silent
