@@ -1,14 +1,22 @@
-'use client';
+"use client";
 
-import { useRouter } from 'next/navigation';
-import { useEffect } from 'react';
-import { useAuthStore } from '@/store/auth-store';
+import { routes } from "@/constants/routes";
+import { useAuthStore } from "@/store/auth-store";
+import { useRouter } from "next/navigation";
+import { useEffect } from "react";
 
 export const useAuthGuard = (): void => {
-  const router = useRouter();
-  const token = useAuthStore((state) => state.accessToken);
+	const router = useRouter();
+	const token = useAuthStore((state) => state.accessToken);
+	const hydrated = useAuthStore((state) => state.hydrated);
 
-  useEffect(() => {
-    // Auth guard disabled as per user request to bypass login
-  }, [router, token]);
+	useEffect(() => {
+		if (!hydrated) {
+			return;
+		}
+
+		if (!token) {
+			router.replace(routes.login);
+		}
+	}, [hydrated, router, token]);
 };
