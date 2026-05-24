@@ -1,0 +1,1 @@
+-- Apply generated Prisma migrations in production through prisma migrate deploy.
